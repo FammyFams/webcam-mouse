@@ -5,6 +5,7 @@ import math
 import time
 import os
 import sys
+from voice_control import VoiceController, init_spotify
 
 # ---------- Detect available cameras ----------
 def find_cameras(max_check=5):
@@ -199,6 +200,17 @@ if not calibrated:
     cv2.destroyAllWindows()
     sys.exit(1)
 
+# ---------- Start Voice Control ----------
+voice = VoiceController()
+voice.start()
+
+# Connect Spotify (token stored in config.py, not committed)
+try:
+    from config import SPOTIFY_TOKEN
+    init_spotify(token=SPOTIFY_TOKEN)
+except ImportError:
+    print("[Voice] No config.py found — Spotify disabled. Create config.py with SPOTIFY_TOKEN to enable.")
+
 # ---------- Main loop ----------
 while cap.isOpened():
     ret, frame = cap.read()
@@ -344,10 +356,17 @@ while cap.isOpened():
         index_was_curled = index_curled
         middle_was_curled = middle_curled
 
+    # Show voice status on overlay
+    voice_status = voice.get_status()
+    if voice_status:
+        cv2.putText(frame, f"Voice: {voice_status}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+
     cv2.imshow("Hand Mouse Control", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
+voice.stop()
 landmarker.close()
 cap.release()
 cv2.destroyAllWindows()
